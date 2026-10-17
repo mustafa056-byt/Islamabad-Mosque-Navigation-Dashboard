@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Muhammad Mustafa - 24-ARID-2226 - Lab 03</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+body{margin:0; font-family:Arial;}
+#header{background:#003366; color:white; text-align:center; padding:13px; font-size:20px; font-weight:bold;}
+#left{width:20%; float:left; background:#f0f0f0; height:90vh; padding:10px;}
+#map{width:60%; float:left; height:90vh; border:1px solid #999;}
+#right{width:20%; float:left; background:#e6f0ff; height:90vh; padding:10px;}
+button{width:100%; padding:10px; margin:6px 0; border-radius:6px; border:1px solid #333; background:white; cursor:pointer;}
+button:hover{background:#003366; color:white;}
+#infoBox{background:white; padding:8px; margin-top:10px; border-radius:5px; border:1px solid #ccc; font-size:13px;}
+</style>
+</head>
+<body>
+<div id="header">Islamabad Mosque Navigation Dashboard - Muhammad Mustafa</div>
+
+<div id="left">
+<h3>Mosques List</h3>
+<button onclick="routeTo(0)">Faisal Mosque</button>
+<button onclick="routeTo(1)">Lal Masjid G-6</button>
+<hr>
+<button onclick="setMyLocation()" style="background:#b6ffba; font-weight:bold;">📍 My Location - Arid Uni</button>
+<div id="status">Click My Location</div>
+</div>
+
+<div id="map"></div>
+
+<div id="right">
+<h3>Student Info</h3>
+<div id="infoBox">
+<b>Name:</b> Muhammad Mustafa<br>
+<b>Arid No:</b> 24-ARID-2226<br>
+<b>Location:</b> Shamshabad, Arid University<br>
+<b>City:</b> Rawalpindi<br>
+<b>Lab:</b> 03
+</div>
+<div id="infoBox">
+<b>Route Details:</b>
+<div id="routeInfo">No route yet</div>
+</div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+// NO API KEY REQUIRED - Esri tiles (File pe bhi chalta hai)
+var map = L.map('map').setView([33.64, 73.07], 12);
+L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+  attribution: 'Esri'
+}).addTo(map);
+
+var mosques = [
+  {name:"Faisal Mosque", lat:33.72148, lng:73.03683},
+  {name:"Lal Masjid G-6", lat:33.7116, lng:73.0878}
+];
+
+var myLat = null, myLng = null, myMarker = null, routeLine = null;
+
+mosques.forEach(function(m){
+  L.marker([m.lat, m.lng]).addTo(map).bindPopup(m.name);
+});
+
+function setMyLocation(){
+  // Shamshabad Arid Agriculture University Rawalpindi
+  myLat = 33.6426;
+  myLng = 73.0793;
+
+  if(myMarker) map.removeLayer(myMarker);
+  var redIcon = L.icon({
+    iconUrl:'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+    iconSize:[25,41], iconAnchor:[12,41]
+  });
+  myMarker = L.marker([myLat, myLng], {icon:redIcon}).addTo(map).bindPopup("My Location: Arid University, Shamshabad").openPopup();
+  map.setView([myLat, myLng], 14);
+  document.getElementById("status").innerHTML = "Location Set: Arid University, Shamshabad";
+  document.getElementById("routeInfo").innerHTML = "Lat: "+myLat+"<br>Lng: "+myLng+"<br>Ready for routing";
+}
+
+function routeTo(index){
+  if(myLat == null){ alert("Pehle My Location button dabao"); return; }
+  var dest = mosques[index];
+  var url = `https://router.project-osrm.org/route/v1/driving/${myLng},${myLat};${dest.lng},${dest.lat}?overview=full&geometries=geojson`;
+  fetch(url).then(r=>r.json()).then(data=>{
+    var route = data.routes[0];
+    if(routeLine) map.removeLayer(routeLine);
+    routeLine = L.geoJSON(route.geometry, {style:{color:'blue', weight:6}}).addTo(map);
+    document.getElementById("routeInfo").innerHTML =
+      "<b>"+dest.name+"</b><br>"+
+      "Distance: "+(route.distance/1000).toFixed(2)+" km<br>"+
+      "Time: "+Math.round(route.duration/60)+" min<br>"+
+      "From: Arid University";
+    map.fitBounds(routeLine.getBounds());
+  });
+}
+</script>
+</body>
+</html>
